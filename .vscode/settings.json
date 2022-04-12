@@ -1,0 +1,15 @@
+{
+    "[rust]": {
+        "editor.defaultFormatter": "matklad.rust-analyzer"
+    },
+    "rust-client.channel": "nightly-2021-12-05",
+    "rust-client.rustupPath": "$HOME/.cargo/bin/rustup",
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "remote.autoForwardPortsSource": "output",
+    "rust-client.engine": "rust-analyzer",
+    "rust-analyzer.enableCargoWatchOnStartup": "true", // 打开项目时自动开启 cargo watch
+    "rust-analyzer.highlightingOn": true, // 覆盖内建语法高亮
+    "rust-analyzer.lruCapacity": 1000, // 分析器最大缓存深度
+    "rust.rust-analyzer.path": "/root/.cargo/bin/rust-analyzer"
+}
