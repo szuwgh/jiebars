@@ -20,7 +20,6 @@ impl Tokenizer {
     }
 
     pub fn cut_all(text: &str) {
-        let words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
         //正则分词 切成英语短语和汉字短语
         let segs = segment::seg_chinese_text(text);
         for seg in segs.into_iter() {
@@ -31,13 +30,18 @@ impl Tokenizer {
     }
 
     fn cut_allw(&self, sentence: &str) {
+        let words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
         let cs = sentence.chars();
         let dag = self.dag(cs);
+        let start: i32 = -1;
+        for (k, l) in dag.into_iter().enumerate() {
+            if l.len() == 1 && k as i32 > start {}
+        }
     }
 
     //获取有向无环图
-    fn dag(&self, cs: Chars) -> HashMap<u32, Vec<u32>> {
-        let mut dag: HashMap<u32, Vec<u32>> = HashMap::new();
+    fn dag(&self, cs: Chars) -> Vec<Vec<u32>> {
+        let mut dag: Vec<Vec<u32>> = Vec::new();
         let sentence = cs.collect::<Vec<char>>();
         let mut i: usize = 0;
         let n = sentence.len();
@@ -63,7 +67,8 @@ impl Tokenizer {
             if tmplist.len() == 0 {
                 tmplist.push(k as u32);
             }
-            dag.insert(k as u32, tmplist);
+            dag.push(tmplist)
+            //dag.insert(k as u32, tmplist);
         }
         dag
     }
