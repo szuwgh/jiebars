@@ -5,12 +5,7 @@ pub fn seg_chinese_text<'a>(text: &'a str) -> Vec<&'a str> {
     let r: Regex = Regex::new(r"(\p{Han}+)").unwrap();
     let t = r.find_iter(text);
     let mut s: Vec<&str> = Vec::new();
-    // if t.count() == 0 {
-    //     s.push(text);
-    //     return s;
-    // }
     let mut begin: usize = 0;
-
     for m in t {
         if begin != m.start() {
             s.push(&text[begin..m.start()]);
