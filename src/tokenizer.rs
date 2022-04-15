@@ -59,12 +59,39 @@ impl Tokenizer {
     //获取有向无环图
     fn dag(&self, sentence: &str) -> Vec<Vec<u32>> {
         let mut dag: Vec<Vec<u32>> = Vec::new();
-        let mut i: usize = 0;
-        let n = sentence.len();
-        let mut frag: &str;`
+        let mut frag: &str;
+        let mut n = sentence.len();
         for (k, _) in sentence.char_indices().peekable() {
-            i = k;
-            let remain = &sentence[k..];
+            let mut tmplist: Vec<u32> = Vec::new();
+            let mut remain = sentence[k..].char_indices().peekable();
+            loop {
+                if let Some((j, _)) = remain.next() {
+                    if j == k {
+                        continue;
+                    }
+                    let i = k + j;
+                    frag = &sentence[k..i];
+                    println!("frag:{}", frag);
+                    if let Some(f) = self.dict.frequency(frag) {
+                        if f > 0 {
+                            tmplist.push(i as u32);
+                        }
+                    }
+                } else {
+                    frag = &sentence[k..n];
+                    println!("frag:{}", frag);
+                    if let Some(f) = self.dict.frequency(frag) {
+                        if f > 0 {
+                            tmplist.push(n as u32);
+                        }
+                    }
+                    break;
+                }
+            }
+            if tmplist.len() == 0 {
+                tmplist.push(k as u32);
+            }
+            dag.push(tmplist)
         }
 
         // for (k, _) in n {
@@ -107,8 +134,8 @@ mod tests {
     #[test]
     fn test_dag() {
         let tokenizer = Tokenizer::new().unwrap();
-        //    let dag = tokenizer.dag(&"我来到北京清华大学".chars().collect::<Vec<char>>());
-        //    print!("dag:{:?}", dag);
+        let dag = tokenizer.dag("我来到北京清华大学");
+        print!("dag:{:?}", dag);
     }
 
     #[test]
