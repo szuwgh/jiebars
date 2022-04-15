@@ -42,8 +42,8 @@ impl Dictionary {
         }
     }
 
-    pub fn frequency(&self, key: String) -> Option<&u32> {
-        self.dict.get(&key)
+    pub fn frequency(&self, key: &str) -> Option<u32> {
+        self.dict.get(key).map(|x| *x)
     }
 }
 
@@ -70,8 +70,8 @@ mod tests {
         // let base_dir = env::current_dir().expect("not found path");
         // let file_dir = &base_dir.join("dict.txt");
         let dict = Dictionary::load(DEFAULT_DICT).unwrap();
-        if let Some(freq) = dict.frequency("我们".to_string()) {
-            println!("freq:{}", *freq);
+        if let Some(freq) = dict.frequency("我们") {
+            println!("freq:{}", freq);
         }
         // println!("The base dir: {}", base_dir.to_str().expect(""));
     }
