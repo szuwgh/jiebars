@@ -19,6 +19,10 @@ impl Tokenizer {
         Ok(Tokenizer { dict })
     }
 
+    //精确模式
+    pub fn cut_c<'a>(&self, text: &'a str) -> Vec<&'a str> {}
+
+    //
     pub fn cut_all<'a>(&self, text: &'a str) -> Vec<&'a str> {
         let mut words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
         //正则分词 切成英语短语和汉字短语
@@ -34,26 +38,15 @@ impl Tokenizer {
 
     fn cut_allw<'a>(&self, sentence: &'a str, words: &mut Vec<&'a str>) {
         let cs = sentence.chars();
-        // let chars = cs.collect::<Vec<char>>();
         let dag = self.dag(sentence);
         let mut start: i32 = -1;
         let byte_index: Vec<usize> = sentence.char_indices().map(|x| x.0).collect();
-        //  for byte_start in byte_index {
-
-        //println!("byte_start:{}", byte_start);
-        //}
-        // for (k, l) in dag.into_iter().enumerate() {
-        //     if l.len() == 1 && k as i32 > start {
-        //         words.push(chars[k..(l[0] + 1) as usize].iter().collect());
-        //         start = l[0] as i32;
-        //     }
-        //     for j in l {
-        //         if j > k as u32 {
-        //             words.push(chars[k..(j + 1) as usize].iter().collect());
-        //             start = j as i32;
-        //         }
-        //     }
-        // }
+        for (i, byte_start) in byte_index.into_iter().enumerate() {
+            let l = &dag[i];
+            for j in l {
+                words.push(&sentence[byte_start..*j as usize]);
+            }
+        }
     }
 
     //获取有向无环图
@@ -61,30 +54,26 @@ impl Tokenizer {
         let mut dag: Vec<Vec<u32>> = Vec::new();
         let mut frag: &str;
         let mut n = sentence.len();
+        let mut i: usize = 0;
         for (k, _) in sentence.char_indices().peekable() {
             let mut tmplist: Vec<u32> = Vec::new();
             let mut remain = sentence[k..].char_indices().peekable();
             loop {
                 if let Some((j, _)) = remain.next() {
-                    if j == k {
+                    if j == 0 {
                         continue;
                     }
-                    let i = k + j;
-                    frag = &sentence[k..i];
-                    println!("frag:{}", frag);
-                    if let Some(f) = self.dict.frequency(frag) {
-                        if f > 0 {
-                            tmplist.push(i as u32);
-                        }
-                    }
+                    i = k + j;
                 } else {
-                    frag = &sentence[k..n];
-                    println!("frag:{}", frag);
-                    if let Some(f) = self.dict.frequency(frag) {
-                        if f > 0 {
-                            tmplist.push(n as u32);
-                        }
+                    i = n;
+                }
+                frag = &sentence[k..i];
+                if let Some(f) = self.dict.frequency(frag) {
+                    if f > 0 {
+                        tmplist.push(i as u32);
                     }
+                }
+                if i == n {
                     break;
                 }
             }
@@ -93,34 +82,6 @@ impl Tokenizer {
             }
             dag.push(tmplist)
         }
-
-        // for (k, _) in n {
-        // println!("byte_start:{:?}", n.peek());
-        //println!("byte_start:{:?}", n.peek());
-        // println!("byte_start:{:?}", n.next());
-        // let mut tmplist: Vec<u32> = Vec::new();
-        // i = k;
-        // frag = &sentence[k..k + 1];
-        // while i < n {
-        //     if let Some(f) = self.dict.frequency(frag.iter().collect()) {
-        //         if *f > 0 {
-        //             tmplist.push(i as u32);
-        //         }
-        //         i += 1;
-        //         if i >= n {
-        //             break;
-        //         }
-        //         frag = &sentence[k..i + 1];
-        //     } else {
-        //         break;
-        //     }
-        // }
-        // if tmplist.len() == 0 {
-        //     tmplist.push(k as u32);
-        // }
-        // dag.push(tmplist)
-        // dag.insert(k as u32, tmplist);
-        // }
         dag
     }
 }
@@ -128,9 +89,6 @@ impl Tokenizer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::env;
-    use std::os::unix::prelude::FileExt;
-    use std::str::Chars;
     #[test]
     fn test_dag() {
         let tokenizer = Tokenizer::new().unwrap();
