@@ -10,6 +10,8 @@ pub struct Tokenizer {
     dict: Dictionary,
 }
 
+pub struct route(f64, i32);
+
 // 基于前缀词典实现高效的词图扫描，生成句子中汉字所有可能成词情况所构成的有向无环图 (DAG)
 // 采用了动态规划查找最大概率路径, 找出基于词频的最大切分组合
 // 对于未登录词，采用了基于汉字成词能力的 HMM 模型，使用了 Viterbi 算法
@@ -20,7 +22,10 @@ impl Tokenizer {
     }
 
     //精确模式
-    pub fn cut_c<'a>(&self, text: &'a str) -> Vec<&'a str> {}
+    pub fn cut_c<'a>(&self, sentence: &'a str) {
+        //let cs = sentence.chars();
+        let dag = self.dag(sentence);
+    }
 
     //
     pub fn cut_all<'a>(&self, text: &'a str) -> Vec<&'a str> {
@@ -37,7 +42,7 @@ impl Tokenizer {
     }
 
     fn cut_allw<'a>(&self, sentence: &'a str, words: &mut Vec<&'a str>) {
-        let cs = sentence.chars();
+        //   let cs = sentence.chars();
         let dag = self.dag(sentence);
         let mut start: i32 = -1;
         let byte_index: Vec<usize> = sentence.char_indices().map(|x| x.0).collect();
@@ -69,7 +74,7 @@ impl Tokenizer {
                 }
                 frag = &sentence[k..i];
                 if let Some(f) = self.dict.frequency(frag) {
-                    if f > 0 {
+                    if f > 0f64 {
                         tmplist.push(i as u32);
                     }
                 }

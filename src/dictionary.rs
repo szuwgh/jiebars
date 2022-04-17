@@ -8,7 +8,7 @@ use std::path::Path;
 static DEFAULT_DICT: &str = include_str!("data/dict.txt");
 
 pub struct Dictionary {
-    dict: HashMap<String, u32>,
+    dict: HashMap<String, f64>,
 }
 
 impl Dictionary {
@@ -29,20 +29,22 @@ impl Dictionary {
                 if elem.len() != 3 {
                     continue;
                 }
-                let u = match elem[1].parse::<u32>() {
+                let u = match elem[1].parse::<f64>() {
                     Ok(u) => u,
                     Err(_e) => continue,
                 };
                 self.dict.insert(elem[0].to_string(), u);
                 let cs = elem[0].chars().collect::<Vec<char>>();
                 for i in 0..cs.len() {
-                    self.dict.entry(cs[..i + 1].iter().collect()).or_insert(0);
+                    self.dict
+                        .entry(cs[..i + 1].iter().collect())
+                        .or_insert(0f64);
                 }
             }
         }
     }
 
-    pub fn frequency(&self, key: &str) -> Option<u32> {
+    pub fn frequency(&self, key: &str) -> Option<f64> {
         self.dict.get(key).map(|x| *x)
     }
 }
