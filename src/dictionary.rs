@@ -9,16 +9,20 @@ static DEFAULT_DICT: &str = include_str!("data/dict.txt");
 
 pub struct Dictionary {
     dict: HashMap<String, f64>,
+    total: f64,
+    pub log_total: f64,
 }
 
 impl Dictionary {
     pub fn load(filepath: &str) -> JResult<Dictionary> {
-        //let f = OpenOptions::new().read(true).open(filepath)?;
         let lines = BufReader::new(DEFAULT_DICT.as_bytes()).lines();
         let mut db = Dictionary {
             dict: HashMap::new(),
+            total: 0f64,
+            log_total: 0f64,
         };
         db.add_word(lines);
+        db.log_total = db.total.ln();
         Ok(db)
     }
 
@@ -33,6 +37,7 @@ impl Dictionary {
                     Ok(u) => u,
                     Err(_e) => continue,
                 };
+                self.total += u;
                 self.dict.insert(elem[0].to_string(), u);
                 let cs = elem[0].chars().collect::<Vec<char>>();
                 for i in 0..cs.len() {
