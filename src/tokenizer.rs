@@ -18,7 +18,7 @@ type Route = (f64, usize);
 // 对于未登录词，采用了基于汉字成词能力的 HMM 模型，使用了 Viterbi 算法
 impl Tokenizer {
     pub fn new() -> JResult<Tokenizer> {
-        let dict = Dictionary::load("dict.txt")?;
+        let dict = Dictionary::load()?;
         Ok(Tokenizer { dict })
     }
 

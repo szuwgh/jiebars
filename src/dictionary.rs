@@ -14,7 +14,7 @@ pub struct Dictionary {
 }
 
 impl Dictionary {
-    pub fn load(filepath: &str) -> JResult<Dictionary> {
+    pub fn load() -> JResult<Dictionary> {
         let lines = BufReader::new(DEFAULT_DICT.as_bytes()).lines();
         let mut db = Dictionary {
             dict: HashMap::new(),
@@ -76,7 +76,7 @@ mod tests {
         // opt/rsproject/jiebars/dict.txt
         // let base_dir = env::current_dir().expect("not found path");
         // let file_dir = &base_dir.join("dict.txt");
-        let dict = Dictionary::load(DEFAULT_DICT).unwrap();
+        let dict = Dictionary::load().unwrap();
         if let Some(freq) = dict.frequency("我们") {
             println!("freq:{}", freq);
         }
