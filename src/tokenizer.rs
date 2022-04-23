@@ -94,7 +94,6 @@ impl Tokenizer {
     //
     pub fn cut_all<'a>(&self, text: &'a str) -> Vec<&'a str> {
         let mut words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
-        //正则分词 切成英语短语和汉字短语
         let segs = segment::seg_chinese_text(text);
         for seg in segs.into_iter() {
             if seg.trim() == "" {
