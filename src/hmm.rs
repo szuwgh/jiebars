@@ -1,5 +1,7 @@
-use crate::hmm_data::{}
+use crate::hmm_data::{PROB_EMIT, PROB_START, PROB_TRANS};
 use std::str::Chars;
+
+const MIN_FLOAT: f64 = -3.14e100;
 
 pub enum Status {
     B = 0,
@@ -25,7 +27,9 @@ fn viterbi(obs: &str) {
     let x2 = *curr.peek().unwrap();
     for y in &status {
         let first_word = &obs[x1..x2];
-       // V[*y as usize] = prob_emit.get(index)
+        let _y = *y as usize;
+        let prob = PROB_EMIT[_y].get(first_word).cloned().unwrap_or(MIN_FLOAT);
+        V[_y] = prob;
     }
 }
 
