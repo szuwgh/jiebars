@@ -12,7 +12,7 @@ pub fn seg_chinese_text<'a>(text: &'a str) -> Vec<&'a str> {
         }
         begin = m.end();
         s.push(&text[m.start()..m.end()]);
-    }
+    }  
     if begin != text.len() {
         s.push(&text[begin..]);
     }
@@ -22,7 +22,7 @@ pub fn seg_chinese_text<'a>(text: &'a str) -> Vec<&'a str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
+    #[test] 
     fn test_seg_chinese_text() {
         let v = seg_chinese_text(
             "I have two num程序编程two num, ok he艺术，用来帮助用户与操作系统进行沟通。wwwwwww ssssss",

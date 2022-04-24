@@ -64,22 +64,15 @@ mod tests {
     fn test_split_chinese_str() {
         let s = "程序设计艺术";
         let cs = s.chars();
-        // for c in cs {
-        //     println!("{}", c);
-        // }
         let ss = cs.collect::<Vec<char>>();
         println!("{:?}", ss);
     }
 
     #[test]
     fn test_dictionary() {
-        // opt/rsproject/jiebars/dict.txt
-        // let base_dir = env::current_dir().expect("not found path");
-        // let file_dir = &base_dir.join("dict.txt");
         let dict = Dictionary::load().unwrap();
         if let Some(freq) = dict.frequency("我们") {
             println!("freq:{}", freq);
         }
-        // println!("The base dir: {}", base_dir.to_str().expect(""));
     }
 }
