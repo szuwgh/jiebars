@@ -35247,7 +35247,7 @@ static S_EMIT : phf::Map<&'static str, f64> = phf_map! {
 		"\u{9fa2}" => -10.61937952828986,
 };
 
-pub static  PROB_EMIT : [&phf::Map<&'static str, f64>;4] = [
+pub static  PROB_EMITS : [&phf::Map<&'static str, f64>;4] = [
     &B_EMIT,
     &E_EMIT,
     &M_EMIT,
