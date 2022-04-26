@@ -1,5 +1,6 @@
 use crate::dictionary::Dictionary;
 use crate::error::JResult;
+use crate::hmm;
 use crate::segment;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -70,29 +71,53 @@ impl Tokenizer {
             while x < sentence.len() {
                 let y = rs[x].1;
                 let frag = &sentence[x..y];
-                if frag.chars().count() == 1 && frag.chars().all(|ch| ch.is_ascii_alphanumeric()) {
+                println!("frag:{:?}", frag);
+                if frag.chars().count() == 1 {
                     if left.is_none() {
                         left = Some(x);
-                        x = y;
                     }
-                    continue;
-                }
-                if let Some(l) = left {
-                    let word = &sentence[l..y];
-                    if word.len() == 1 {
-                        words.push(word);
-                    } else {
-                        let f = self.dict.frequency(word);
-                        if f.is_none() || f == Some(0.0) {}
+                } else {
+                    if let Some(l) = left {
+                        let word = &sentence[l..x];
+                        println!("word:{:?}", word);
+                        if word.len() == 1 {
+                            words.push(word);
+                        } else {
+                            let f = self.dict.frequency(word);
+                            if f.is_none() || f == Some(0.0) {
+                                hmm::cut_han(word, &mut words);
+                            } else {
+                                let mut word_index = word.char_indices().map(|x| x.0).peekable();
+                                while let Some(byte_start) = word_index.next() {
+                                    let byte_end = *word_index.peek().unwrap_or(&word.len());
+                                    words.push(&word[byte_start..byte_end]);
+                                }
+                            }
+                        }
+                        left = None;
                     }
-                    //words.push(&sentence[l..y]);
-                    left = None;
+                    words.push(frag);
                 }
-                words.push(frag);
+
                 x = y;
             }
             if let Some(l) = left {
-                words.push(&sentence[l..]);
+                // words.push(&sentence[l..]);
+                let word = &sentence[l..];
+                if word.len() == 1 {
+                    words.push(word);
+                } else {
+                    let f = self.dict.frequency(word);
+                    if f.is_none() || f == Some(0.0) {
+                        hmm::cut_han(word, &mut words);
+                    } else {
+                        let mut word_index = word.char_indices().map(|x| x.0).peekable();
+                        while let Some(byte_start) = word_index.next() {
+                            let byte_end = *word_index.peek().unwrap_or(&word.len());
+                            words.push(&word[byte_start..byte_end]);
+                        }
+                    }
+                }
             }
         }
         words
@@ -115,8 +140,8 @@ impl Tokenizer {
                 if frag.chars().count() == 1 && frag.chars().all(|ch| ch.is_ascii_alphanumeric()) {
                     if left.is_none() {
                         left = Some(x);
-                        x = y;
                     }
+                    x = y;
                     continue;
                 }
                 if let Some(l) = left {
@@ -224,6 +249,13 @@ mod tests {
     fn test_cut_dag_no_hmm() {
         let tokenizer = Tokenizer::new().unwrap();
         let words = tokenizer.cut_dag_no_hmm("小明硕士毕业于中国科学院计算所");
+        print!("rs:{:?}", words);
+    }
+
+    #[test]
+    fn test_cut_dag_hmm() {
+        let tokenizer = Tokenizer::new().unwrap();
+        let words = tokenizer.cut_dag_with_hmm("小明硕士毕业于中国科学院计算所");
         print!("rs:{:?}", words);
     }
 }

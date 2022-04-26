@@ -19,7 +19,7 @@ static PREV_STATUS: [[Status; 2]; 4] = [
     [Status::S, Status::E], // S
 ];
 
-fn cut_han<'a>(sentence: &'a str, words: &mut Vec<&'a str>) {
+pub fn cut_han<'a>(sentence: &'a str, words: &mut Vec<&'a str>) {
     let str_len = sentence.len();
     let pos_list = viterbi(sentence);
     let mut curr = sentence.char_indices().map(|x| x.0).peekable();
