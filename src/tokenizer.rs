@@ -56,6 +56,48 @@ impl Tokenizer {
         rs
     }
 
+    pub fn cut_dag_with_hmm<'a>(&self, text: &'a str) -> Vec<&'a str> {
+        let mut words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
+        //正则分词 切成英语短语和汉字短语
+        let segs = segment::seg_chinese_text(text);
+        for sentence in segs.into_iter() {
+            if sentence.trim() == "" {
+                continue;
+            }
+            let rs = self.calc(sentence);
+            let mut x = 0usize;
+            let mut left: Option<usize> = None;
+            while x < sentence.len() {
+                let y = rs[x].1;
+                let frag = &sentence[x..y];
+                if frag.chars().count() == 1 && frag.chars().all(|ch| ch.is_ascii_alphanumeric()) {
+                    if left.is_none() {
+                        left = Some(x);
+                        x = y;
+                    }
+                    continue;
+                }
+                if let Some(l) = left {
+                    let word = &sentence[l..y];
+                    if word.len() == 1 {
+                        words.push(word);
+                    } else {
+                        let f = self.dict.frequency(word);
+                        if f.is_none() || f == Some(0.0) {}
+                    }
+                    //words.push(&sentence[l..y]);
+                    left = None;
+                }
+                words.push(frag);
+                x = y;
+            }
+            if let Some(l) = left {
+                words.push(&sentence[l..]);
+            }
+        }
+        words
+    }
+
     pub fn cut_dag_no_hmm<'a>(&self, text: &'a str) -> Vec<&'a str> {
         let mut words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
         //正则分词 切成英语短语和汉字短语
@@ -72,7 +114,7 @@ impl Tokenizer {
                 let frag = &sentence[x..y];
                 if frag.chars().count() == 1 && frag.chars().all(|ch| ch.is_ascii_alphanumeric()) {
                     if left.is_none() {
-                        Some(x);
+                        left = Some(x);
                         x = y;
                     }
                     continue;
@@ -181,7 +223,7 @@ mod tests {
     #[test]
     fn test_cut_dag_no_hmm() {
         let tokenizer = Tokenizer::new().unwrap();
-        let words = tokenizer.cut_dag_no_hmm("我来到北京清华大学");
+        let words = tokenizer.cut_dag_no_hmm("小明硕士毕业于中国科学院计算所");
         print!("rs:{:?}", words);
     }
 }

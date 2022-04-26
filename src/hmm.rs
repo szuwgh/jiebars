@@ -19,12 +19,42 @@ static PREV_STATUS: [[Status; 2]; 4] = [
     [Status::S, Status::E], // S
 ];
 
+fn cut_han<'a>(sentence: &'a str, words: &mut Vec<&'a str>) {
+    let str_len = sentence.len();
+    let pos_list = viterbi(sentence);
+    let mut curr = sentence.char_indices().map(|x| x.0).peekable();
+    let mut begin: usize = 0;
+    let mut next: usize = 0;
+    let mut i: usize = 0;
+    while let Some(byte_start) = curr.next() {
+        let pos = pos_list[i];
+        match pos {
+            Status::B => begin = byte_start,
+            Status::E => {
+                let byte_end = *curr.peek().unwrap_or(&str_len);
+                words.push(&sentence[begin..byte_end]);
+                next = byte_end;
+            }
+            Status::M => {}
+            Status::S => {
+                let byte_end = *curr.peek().unwrap_or(&str_len);
+                words.push(&sentence[begin..byte_end]);
+                next = byte_end;
+            }
+        }
+        i += 1;
+    }
+    if next < str_len {
+        words.push(&sentence[next..]);
+    }
+}
+
 //obs : 观察值集合
 //(B, M, E, S) : 状态值集合
 //InitStatus :初始状态概率分布
 // 转移概率矩阵Status(i)只和Status(i-1)相关
 //发射概率矩阵: P(Observed[i], Status[j]) = P(Status[j]) * P(Observed[i]|Status[j])
-fn viterbi(obs: &str) {
+fn viterbi(obs: &str) -> Vec<Status> {
     let str_len = obs.len();
     let status = [Status::B, Status::M, Status::E, Status::S];
 
@@ -88,8 +118,7 @@ fn viterbi(obs: &str) {
         curr = p;
         t -= 1;
     }
-    //println!("prev:{:?}", prev);
-    println!("path:{:?}", path);
+    path
 }
 
 #[cfg(test)]
@@ -98,6 +127,14 @@ mod tests {
 
     #[test]
     fn test_viterbi() {
-        viterbi("小明硕士毕业于中国科学院计算所");
+        let path = viterbi("小明硕士毕业于中国科学院计算所");
+        println!("path:{:?}", path);
+    }
+
+    #[test]
+    fn test_cut_han() {
+        let mut words: Vec<&str> = Vec::with_capacity(64);
+        cut_han("小明硕士毕业于中国科学院计算所", &mut words);
+        println!("words:{:?}", words);
     }
 }
