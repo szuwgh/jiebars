@@ -6,10 +6,10 @@ mod segment;
 
 use crate::dictionary::Dictionary;
 use crate::error::JResult;
+use crate::segment::{SegmentMatches, SegmentState, RE_HAN_DEFAULT, RE_SKIP_DEAFULT};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::str::{self, Chars};
-use crate::segment::SegmentMatches;
 
 const DEFAULT_WORD_LEN: usize = 32;
 
@@ -26,6 +26,42 @@ impl Jieba {
     pub fn new() -> JResult<Jieba> {
         let dict = Dictionary::load()?;
         Ok(Jieba { dict })
+    }
+
+    //获取有向无环图
+    fn dag(&self, sentence: &str) -> HashMap<usize, Vec<usize>> {
+        let mut dag: HashMap<usize, Vec<usize>> = HashMap::new();
+        let mut frag: &str;
+        let mut n = sentence.len();
+        let mut i: usize = 0;
+        for (k, _) in sentence.char_indices().peekable() {
+            let mut tmplist: Vec<usize> = Vec::new();
+            let mut remain = sentence[k..].char_indices().peekable();
+            loop {
+                if let Some((j, _)) = remain.next() {
+                    if j == 0 {
+                        continue;
+                    }
+                    i = k + j;
+                } else {
+                    i = n;
+                }
+                frag = &sentence[k..i];
+                if let Some(f) = self.dict.frequency(frag) {
+                    if f > 0f64 {
+                        tmplist.push(i);
+                    }
+                }
+                if i == n {
+                    break;
+                }
+            }
+            if tmplist.len() == 0 {
+                tmplist.push(k);
+            }
+            dag.insert(k, tmplist);
+        }
+        dag
     }
 
     //精确模式
@@ -62,7 +98,7 @@ impl Jieba {
         rs
     }
 
-    fn cut_dag_with_hmm<'a>(&self, text: &'a str, words: &mut Vec<&'a str>) -> Vec<&'a str> {
+    fn cut_dag_with_hmm<'a>(&self, sentence: &'a str, words: &mut Vec<&'a str>) {
         // let mut words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
         //正则分词 切成英语短语和汉字短语
 
@@ -119,7 +155,7 @@ impl Jieba {
         }
     }
 
-    fn cut_dag_no_hmm<'a>(&self, text: &'a str, words: &mut Vec<&'a str>) {
+    fn cut_dag_no_hmm<'a>(&self, sentence: &'a str, words: &mut Vec<&'a str>) {
         //  let mut words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
         //正则分词 切成英语短语和汉字短语
 
@@ -161,7 +197,6 @@ impl Jieba {
     // }
 
     fn cut_all<'a>(&self, sentence: &'a str, words: &mut Vec<&'a str>) {
-        //   let cs = sentence.chars();
         let dag = self.dag(sentence);
         let mut start: i32 = -1;
         let byte_index: Vec<usize> = sentence.char_indices().map(|x| x.0).collect();
@@ -173,45 +208,15 @@ impl Jieba {
         }
     }
 
-    //获取有向无环图
-    fn dag(&self, sentence: &str) -> HashMap<usize, Vec<usize>> {
-        let mut dag: HashMap<usize, Vec<usize>> = HashMap::new();
-        let mut frag: &str;
-        let mut n = sentence.len();
-        let mut i: usize = 0;
-        for (k, _) in sentence.char_indices().peekable() {
-            let mut tmplist: Vec<usize> = Vec::new();
-            let mut remain = sentence[k..].char_indices().peekable();
-            loop {
-                if let Some((j, _)) = remain.next() {
-                    if j == 0 {
-                        continue;
-                    }
-                    i = k + j;
-                } else {
-                    i = n;
-                }
-                frag = &sentence[k..i];
-                if let Some(f) = self.dict.frequency(frag) {
-                    if f > 0f64 {
-                        tmplist.push(i);
-                    }
-                }
-                if i == n {
-                    break;
-                }
-            }
-            if tmplist.len() == 0 {
-                tmplist.push(k);
-            }
-            dag.insert(k, tmplist);
-        }
-        dag
-    }
-
-    pub fn cut<'a>(&self, text: &'a str, cut_all: bool, hmm: bool) -> Veec<&'a str> {
+    pub fn cut<'a>(&self, text: &'a str, cut_all: bool, hmm: bool) -> Vec<&'a str> {
         let mut words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
-        let seg_split = 
+        let seg_split = SegmentMatches::new(&RE_HAN_DEFAULT, text);
+        for m in seg_split {
+            match m {
+                SegmentState::Matched(m) => {}
+                SegmentState::Unmatched(s) => {}
+            }
+        }
     }
 
     pub fn cut_for_search() {}

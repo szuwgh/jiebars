@@ -2,8 +2,10 @@ use lazy_static::lazy_static;
 use regex::{Match, Matches, Regex};
 
 lazy_static! {
-    static ref RE_HAN_DEFAULT: Regex = Regex::new(r"([\u4E00-\u9FD5a-zA-Z0-9+#&\._%\-]+)").unwrap();
-    static ref RE_SKIP_DEAFULT: Regex = Regex::new(r"(\r\n|\s)").unwrap();
+    pub static ref RE_HAN_DEFAULT: Regex =
+        Regex::new(r"([\u4E00-\u9FD5a-zA-Z0-9+#&\._%\-]+)").unwrap();
+    pub static ref RE_SKIP_DEAFULT: Regex = Regex::new(r"(\r\n|\s)").unwrap();
+    pub static ref reSkipCutAll: Regex = Regex::new(r"[^[:alnum:]+#\n]").unwrap();
 }
 
 pub struct SegmentMatches<'r, 't> {
