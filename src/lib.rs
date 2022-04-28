@@ -9,6 +9,7 @@ use crate::error::JResult;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::str::{self, Chars};
+use crate::segment::SegmentMatches;
 
 const DEFAULT_WORD_LEN: usize = 32;
 
@@ -61,120 +62,105 @@ impl Jieba {
         rs
     }
 
-    fn cut_dag_with_hmm<'a>(&self, text: &'a str) -> Vec<&'a str> {
-        let mut words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
+    fn cut_dag_with_hmm<'a>(&self, text: &'a str, words: &mut Vec<&'a str>) -> Vec<&'a str> {
+        // let mut words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
         //正则分词 切成英语短语和汉字短语
-        let segs = segment::seg_chinese_text(text);
-        for sentence in segs.into_iter() {
-            if sentence.trim() == "" {
-                continue;
-            }
-            let rs = self.calc(sentence);
-            let mut x = 0usize;
-            let mut left: Option<usize> = None;
-            while x < sentence.len() {
-                let y = rs[x].1;
-                let frag = &sentence[x..y];
-                println!("frag:{:?}", frag);
-                if frag.chars().count() == 1 {
-                    if left.is_none() {
-                        left = Some(x);
-                    }
-                } else {
-                    if let Some(l) = left {
-                        let word = &sentence[l..x];
-                        println!("word:{:?}", word);
-                        if word.len() == 1 {
-                            words.push(word);
+
+        let rs = self.calc(sentence);
+        let mut x = 0usize;
+        let mut left: Option<usize> = None;
+        while x < sentence.len() {
+            let y = rs[x].1;
+            let frag = &sentence[x..y];
+            if frag.chars().count() == 1 {
+                if left.is_none() {
+                    left = Some(x);
+                }
+            } else {
+                if let Some(l) = left {
+                    let word = &sentence[l..x];
+                    if word.len() == 1 {
+                        words.push(word);
+                    } else {
+                        let f = self.dict.frequency(word);
+                        if f.is_none() || f == Some(0.0) {
+                            hmm::cut_han(word, &mut words);
                         } else {
-                            let f = self.dict.frequency(word);
-                            if f.is_none() || f == Some(0.0) {
-                                hmm::cut_han(word, &mut words);
-                            } else {
-                                let mut word_index = word.char_indices().map(|x| x.0).peekable();
-                                while let Some(byte_start) = word_index.next() {
-                                    let byte_end = *word_index.peek().unwrap_or(&word.len());
-                                    words.push(&word[byte_start..byte_end]);
-                                }
+                            let mut word_index = word.char_indices().map(|x| x.0).peekable();
+                            while let Some(byte_start) = word_index.next() {
+                                let byte_end = *word_index.peek().unwrap_or(&word.len());
+                                words.push(&word[byte_start..byte_end]);
                             }
                         }
-                        left = None;
                     }
-                    words.push(frag);
-                }
-
-                x = y;
-            }
-            if let Some(l) = left {
-                // words.push(&sentence[l..]);
-                let word = &sentence[l..];
-                if word.len() == 1 {
-                    words.push(word);
-                } else {
-                    let f = self.dict.frequency(word);
-                    if f.is_none() || f == Some(0.0) {
-                        hmm::cut_han(word, &mut words);
-                    } else {
-                        let mut word_index = word.char_indices().map(|x| x.0).peekable();
-                        while let Some(byte_start) = word_index.next() {
-                            let byte_end = *word_index.peek().unwrap_or(&word.len());
-                            words.push(&word[byte_start..byte_end]);
-                        }
-                    }
-                }
-            }
-        }
-        words
-    }
-
-    fn cut_dag_no_hmm<'a>(&self, text: &'a str) -> Vec<&'a str> {
-        let mut words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
-        //正则分词 切成英语短语和汉字短语
-        let segs = segment::seg_chinese_text(text);
-        for sentence in segs.into_iter() {
-            if sentence.trim() == "" {
-                continue;
-            }
-            let rs = self.calc(sentence);
-            let mut x = 0usize;
-            let mut left: Option<usize> = None;
-            while x < sentence.len() {
-                let y = rs[x].1;
-                let frag = &sentence[x..y];
-                if frag.chars().count() == 1 && frag.chars().all(|ch| ch.is_ascii_alphanumeric()) {
-                    if left.is_none() {
-                        left = Some(x);
-                    }
-                    x = y;
-                    continue;
-                }
-                if let Some(l) = left {
-                    words.push(&sentence[l..y]);
                     left = None;
                 }
                 words.push(frag);
-                x = y;
             }
-            if let Some(l) = left {
-                words.push(&sentence[l..]);
+
+            x = y;
+        }
+        if let Some(l) = left {
+            let word = &sentence[l..];
+            if word.len() == 1 {
+                words.push(word);
+            } else {
+                let f = self.dict.frequency(word);
+                if f.is_none() || f == Some(0.0) {
+                    hmm::cut_han(word, &mut words);
+                } else {
+                    let mut word_index = word.char_indices().map(|x| x.0).peekable();
+                    while let Some(byte_start) = word_index.next() {
+                        let byte_end = *word_index.peek().unwrap_or(&word.len());
+                        words.push(&word[byte_start..byte_end]);
+                    }
+                }
             }
         }
-        words
+    }
+
+    fn cut_dag_no_hmm<'a>(&self, text: &'a str, words: &mut Vec<&'a str>) {
+        //  let mut words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
+        //正则分词 切成英语短语和汉字短语
+
+        let rs = self.calc(sentence);
+        let mut x = 0usize;
+        let mut left: Option<usize> = None;
+        while x < sentence.len() {
+            let y = rs[x].1;
+            let frag = &sentence[x..y];
+            if frag.chars().count() == 1 && frag.chars().all(|ch| ch.is_ascii_alphanumeric()) {
+                if left.is_none() {
+                    left = Some(x);
+                }
+                x = y;
+                continue;
+            }
+            if let Some(l) = left {
+                words.push(&sentence[l..y]);
+                left = None;
+            }
+            words.push(frag);
+            x = y;
+        }
+        if let Some(l) = left {
+            words.push(&sentence[l..]);
+        }
     }
 
     //
-    fn cut_all<'a>(&self, text: &'a str) -> Vec<&'a str> {
-        let seg = SegmentMatches::new(&RE_HAN_DEFAULT, text);
-        for seg in segs {
-            if seg.trim() == "" {
-                continue;
-            }
-            self.cut_allw(seg, &mut words)
-        }
-        words
-    }
+    // fn cut_all<'a>(&self, text: &'a str, words: &mut Vec<&'a str>) -> Vec<&'a str> {
+    //     let seg = SegmentMatches::new(&RE_HAN_DEFAULT, text);
+    //     for seg in segs {
+    //         if seg.trim() == "" {
+    //             continue;
+    //         }
+    //         self.cut_allw(seg, words)
+    //     }
+    //     words
+    // }
 
-    fn cut_allw<'a>(&self, sentence: &'a str, words: &mut Vec<&'a str>) {
+    fn cut_all<'a>(&self, sentence: &'a str, words: &mut Vec<&'a str>) {
         //   let cs = sentence.chars();
         let dag = self.dag(sentence);
         let mut start: i32 = -1;
@@ -223,9 +209,12 @@ impl Jieba {
         dag
     }
 
-    pub fn cut<'a>(&self, text: &'a str, hmm: bool) -> Veec<&'a str> {
+    pub fn cut<'a>(&self, text: &'a str, cut_all: bool, hmm: bool) -> Veec<&'a str> {
         let mut words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
+        let seg_split = 
     }
+
+    pub fn cut_for_search() {}
 }
 
 #[cfg(test)]
@@ -241,8 +230,8 @@ mod tests {
     #[test]
     fn test_cut_all() {
         let jieba = Jieba::new().unwrap();
-        let words = jieba.cut_all("我来到北京清华大学");
-        print!("words:{:?}", words.join("/"));
+        //let words = jieba.cut_all("我来到北京清华大学");
+        // print!("words:{:?}", words.join("/"));
     }
 
     #[test]
@@ -255,14 +244,14 @@ mod tests {
     #[test]
     fn test_cut_dag_no_hmm() {
         let jieba = Jieba::new().unwrap();
-        let words = jieba.cut_dag_no_hmm("小明硕士毕业于中国科学院计算所");
-        print!("rs:{:?}", words);
+        //let words = jieba.cut_dag_no_hmm("小明硕士毕业于中国科学院计算所");
+        // print!("rs:{:?}", words);
     }
 
     #[test]
     fn test_cut_dag_hmm() {
         let jieba = Jieba::new().unwrap();
-        let words = jieba.cut_dag_with_hmm("小明硕士毕业于中国科学院计算所");
-        print!("rs:{:?}", words);
+        // let words = jieba.cut_dag_with_hmm("小明硕士毕业于中国科学院计算所");
+        // print!("rs:{:?}", words);
     }
 }

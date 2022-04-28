@@ -6,7 +6,7 @@ lazy_static! {
     static ref RE_SKIP_DEAFULT: Regex = Regex::new(r"(\r\n|\s)").unwrap();
 }
 
-struct SegmentMatches<'r, 't> {
+pub struct SegmentMatches<'r, 't> {
     matches: Matches<'r, 't>,
     text: &'t str,
     last: usize,
@@ -14,7 +14,7 @@ struct SegmentMatches<'r, 't> {
 }
 
 impl<'r, 't> SegmentMatches<'r, 't> {
-    fn new(re: &'r Regex, text: &'t str) -> SegmentMatches<'r, 't> {
+    pub fn new(re: &'r Regex, text: &'t str) -> SegmentMatches<'r, 't> {
         SegmentMatches {
             matches: re.find_iter(text),
             text: text,
@@ -60,25 +60,6 @@ impl<'r, 't> Iterator for SegmentMatches<'r, 't> {
         }
     }
 }
-
-//一个汉字 3 个字节
-// pub fn seg_chinese_text<'a>(text: &'a str) -> Vec<&'a str> {
-//     let r: Regex = Regex::new(r"(\p{Han}+)").unwrap();
-//     let t = r.find_iter(text);
-//     let mut s: Vec<&str> = Vec::new();
-//     let mut begin: usize = 0;
-//     for m in t {
-//         if begin != m.start() {
-//             s.push(&text[begin..m.start()]);
-//         }
-//         begin = m.end();
-//         s.push(&text[m.start()..m.end()]);
-//     }
-//     if begin != text.len() {
-//         s.push(&text[begin..]);
-//     }
-//     s
-// }
 
 #[cfg(test)]
 mod tests {
