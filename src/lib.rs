@@ -19,9 +19,9 @@ pub struct Jieba {
 
 type Route = (f64, usize);
 
-// 基于前缀词典实现高效的词图扫描，生成句子中汉字所有可能成词情况所构成的有向无环图 (DAG)
-// 采用了动态规划查找最大概率路径, 找出基于词频的最大切分组合
-// 对于未登录词，采用了基于汉字成词能力的 HMM 模型，使用了 Viterbi 算法
+// Based on the front-end implementation of efficient word graph scanning of the dictionary, a directed acyclic graph (DAG) composed of all possible word formations in the sentence is generated
+// Use the maximum range segmentation combination based on dynamic search terms
+// For unregistered words, the HMM model based on the ability of Chinese characters to form words is used, and the Viterbi algorithm is used
 impl Jieba {
     pub fn new() -> JResult<Jieba> {
         let dict = Dictionary::load()?;
@@ -56,9 +56,9 @@ impl Jieba {
                     break;
                 }
             }
-            if tmplist.len() == 0 {
-                tmplist.push(k);
-            }
+            // if tmplist.len() == 0 {
+            //     tmplist.push(k);
+            // }
             dag.insert(k, tmplist);
         }
         dag
@@ -70,20 +70,20 @@ impl Jieba {
         let dag = self.dag(sentence);
         let mut rs: Vec<Route> = vec![(0f64, 0); str_len + 1];
         let byte_index = sentence.char_indices().map(|x| x.0).rev();
-        let mut r = (0.0, 0);
         let mut prev_byte_start = str_len;
         for byte_start in byte_index {
             let l = dag.get(&byte_start).unwrap();
             let pair = l
                 .iter()
                 .map(|byte_end| {
+                    let mut f: f64 = 0.0;
                     if let Some(freq) = self.dict.frequency(&sentence[byte_start..*byte_end]) {
-                        r.0 = freq.ln() - self.dict.log_total + rs[*byte_end].0;
+                        f = freq.ln() - self.dict.log_total + rs[*byte_end].0;
                     } else {
-                        r.0 = 1f64.ln() - self.dict.log_total + rs[*byte_end].0;
+                        f = 1f64.ln() - self.dict.log_total + rs[*byte_end].0;
                     }
-                    r.1 = *byte_end;
-                    r
+                    //r.1 = *byte_end;
+                    (f, *byte_end)
                 })
                 .max_by(|r1, r2| r1.partial_cmp(r2).unwrap_or(Ordering::Equal));
 
@@ -99,9 +99,6 @@ impl Jieba {
     }
 
     fn cut_dag_with_hmm<'a>(&self, sentence: &'a str, words: &mut Vec<&'a str>) {
-        // let mut words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
-        //正则分词 切成英语短语和汉字短语
-
         let rs = self.calc(sentence);
         let mut x = 0usize;
         let mut left: Option<usize> = None;
@@ -115,12 +112,13 @@ impl Jieba {
             } else {
                 if let Some(l) = left {
                     let word = &sentence[l..x];
-                    if word.len() == 1 {
+                    println!("word:{}，{}", word, word.chars().count());
+                    if word.chars().count() == 1 {
                         words.push(word);
                     } else {
                         let f = self.dict.frequency(word);
                         if f.is_none() || f == Some(0.0) {
-                            hmm::cut_han(word, &mut words);
+                            hmm::cut(word, words);
                         } else {
                             let mut word_index = word.char_indices().map(|x| x.0).peekable();
                             while let Some(byte_start) = word_index.next() {
@@ -133,17 +131,18 @@ impl Jieba {
                 }
                 words.push(frag);
             }
-
+            println!("xxx");
             x = y;
         }
         if let Some(l) = left {
             let word = &sentence[l..];
-            if word.len() == 1 {
+            println!("word:{}，{}", word, word.chars().count());
+            if word.chars().count() == 1 {
                 words.push(word);
             } else {
                 let f = self.dict.frequency(word);
                 if f.is_none() || f == Some(0.0) {
-                    hmm::cut_han(word, &mut words);
+                    hmm::cut(word, words);
                 } else {
                     let mut word_index = word.char_indices().map(|x| x.0).peekable();
                     while let Some(byte_start) = word_index.next() {
@@ -156,9 +155,6 @@ impl Jieba {
     }
 
     fn cut_dag_no_hmm<'a>(&self, sentence: &'a str, words: &mut Vec<&'a str>) {
-        //  let mut words: Vec<&str> = Vec::with_capacity(DEFAULT_WORD_LEN);
-        //正则分词 切成英语短语和汉字短语
-
         let rs = self.calc(sentence);
         let mut x = 0usize;
         let mut left: Option<usize> = None;
@@ -178,23 +174,12 @@ impl Jieba {
             }
             words.push(frag);
             x = y;
+            println!("xxx");
         }
         if let Some(l) = left {
             words.push(&sentence[l..]);
         }
     }
-
-    //
-    // fn cut_all<'a>(&self, text: &'a str, words: &mut Vec<&'a str>) -> Vec<&'a str> {
-    //     let seg = SegmentMatches::new(&RE_HAN_DEFAULT, text);
-    //     for seg in segs {
-    //         if seg.trim() == "" {
-    //             continue;
-    //         }
-    //         self.cut_allw(seg, words)
-    //     }
-    //     words
-    // }
 
     fn cut_all<'a>(&self, sentence: &'a str, words: &mut Vec<&'a str>) {
         let dag = self.dag(sentence);
@@ -213,10 +198,19 @@ impl Jieba {
         let seg_split = SegmentMatches::new(&RE_HAN_DEFAULT, text);
         for m in seg_split {
             match m {
-                SegmentState::Matched(m) => {}
+                SegmentState::Matched(m) => {
+                    if cut_all {
+                        self.cut_all(m.as_str(), &mut words)
+                    } else if hmm {
+                        self.cut_dag_with_hmm(m.as_str(), &mut words)
+                    } else {
+                        self.cut_dag_no_hmm(m.as_str(), &mut words)
+                    }
+                }
                 SegmentState::Unmatched(s) => {}
             }
         }
+        words
     }
 
     pub fn cut_for_search() {}
@@ -227,36 +221,36 @@ mod tests {
     use super::*;
     #[test]
     fn test_dag() {
-        let Jieba = Jieba::new().unwrap();
-        let dag = Jieba.dag("我来到北京清华大学");
+        let jieba = Jieba::new().unwrap();
+        let dag = jieba.dag("two");
         print!("dag:{:?}", dag);
     }
 
     #[test]
     fn test_cut_all() {
         let jieba = Jieba::new().unwrap();
-        //let words = jieba.cut_all("我来到北京清华大学");
-        // print!("words:{:?}", words.join("/"));
+        let words = jieba.cut("小明硕士毕业于中国科学院计算所", true, false);
+        print!("rs:{:?}", words);
     }
 
     #[test]
     fn test_cut_c() {
         let jieba = Jieba::new().unwrap();
-        let rs = jieba.calc("我来到北京清华大学");
+        let rs = jieba.calc("two");
         print!("rs:{:?}", rs);
     }
 
     #[test]
     fn test_cut_dag_no_hmm() {
         let jieba = Jieba::new().unwrap();
-        //let words = jieba.cut_dag_no_hmm("小明硕士毕业于中国科学院计算所");
-        // print!("rs:{:?}", words);
+        let words = jieba.cut("I have two ok", false, false);
+        print!("rs:{:?}", words);
     }
 
     #[test]
     fn test_cut_dag_hmm() {
         let jieba = Jieba::new().unwrap();
-        // let words = jieba.cut_dag_with_hmm("小明硕士毕业于中国科学院计算所");
-        // print!("rs:{:?}", words);
+        let words = jieba.cut("two", false, true);
+        print!("rs:{:?}", words);
     }
 }

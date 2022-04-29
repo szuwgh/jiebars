@@ -1,6 +1,14 @@
 use crate::hmm_data::{PROB_EMITS, PROB_START, PROB_TRANS};
+use crate::segment::SegmentMatches;
+use lazy_static::lazy_static;
+use regex::Regex;
 use std::cmp::Ordering;
 use std::str::Chars;
+
+lazy_static! {
+    static ref RE_HAN: Regex = Regex::new(r"([\u{4E00}-\u{9FD5}]+)").unwrap();
+    static ref RE_SKIP: Regex = Regex::new(r"([a-zA-Z0-9]+(?:.\d+)?%?)").unwrap();
+}
 
 const MIN_FLOAT: f64 = -3.14e100;
 
@@ -19,7 +27,26 @@ static PREV_STATUS: [[Status; 2]; 4] = [
     [Status::S, Status::E], // S
 ];
 
-pub fn cut_han<'a>(sentence: &'a str, words: &mut Vec<&'a str>) {
+pub fn cut<'a>(sentence: &'a str, words: &mut Vec<&'a str>) {
+    if RE_HAN.is_match(sentence) {
+        if sentence.chars().count() > 1 {
+            cut_han(sentence, words);
+        } else {
+            words.push(sentence);
+        }
+    } else {
+        let skip_splitter = SegmentMatches::new(&RE_SKIP, sentence);
+        for skip_state in skip_splitter {
+            // let x = skip_state.into_str();
+            // if x.is_empty() {
+            //     continue;
+            // }
+            // words.push(x);
+        }
+    }
+}
+
+fn cut_han<'a>(sentence: &'a str, words: &mut Vec<&'a str>) {
     let str_len = sentence.len();
     let pos_list = viterbi(sentence);
     let mut curr = sentence.char_indices().map(|x| x.0).peekable();
@@ -134,7 +161,7 @@ mod tests {
     #[test]
     fn test_cut_han() {
         let mut words: Vec<&str> = Vec::with_capacity(64);
-        cut_han("小明硕士毕业于中国科学院计算所", &mut words);
+        cut_han("two", &mut words);
         println!("words:{:?}", words);
     }
 }

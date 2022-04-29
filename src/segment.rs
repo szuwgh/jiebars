@@ -5,7 +5,7 @@ lazy_static! {
     pub static ref RE_HAN_DEFAULT: Regex =
         Regex::new(r"([\u4E00-\u9FD5a-zA-Z0-9+#&\._%\-]+)").unwrap();
     pub static ref RE_SKIP_DEAFULT: Regex = Regex::new(r"(\r\n|\s)").unwrap();
-    pub static ref reSkipCutAll: Regex = Regex::new(r"[^[:alnum:]+#\n]").unwrap();
+    pub static ref RE_SKIP_CUT_ALL: Regex = Regex::new(r"[^[:alnum:]+#\n]").unwrap();
 }
 
 pub struct SegmentMatches<'r, 't> {
@@ -70,8 +70,23 @@ mod tests {
     fn test_seg_chinese_text() {
         let seg = SegmentMatches::new(
             &RE_HAN_DEFAULT,
-            "👪 PS: I have two match the我觉得开源有一个好处，就是能够敦促自己不断改进 👪，避免敞帚自珍",
+            "👪 PS: I have two match the, 我觉得开源有一个好处，就是能够敦促自己不断改进 👪，避免敞帚自珍",
         );
+        for state in seg {
+            match state {
+                SegmentState::Matched(m) => {
+                    println!("Matched:{:?}", m.as_str());
+                }
+                SegmentState::Unmatched(s) => {
+                    println!("Unmatched:{:?}", s);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_re_skip_cut_all() {
+        let seg = SegmentMatches::new(&RE_SKIP_CUT_ALL, "I have two match the");
         for state in seg {
             match state {
                 SegmentState::Matched(m) => {
