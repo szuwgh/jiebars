@@ -56,9 +56,6 @@ impl Jieba {
                     break;
                 }
             }
-            // if tmplist.len() == 0 {
-            //     tmplist.push(k);
-            // }
             dag.insert(k, tmplist);
         }
         dag
@@ -82,7 +79,6 @@ impl Jieba {
                     } else {
                         f = 1f64.ln() - self.dict.log_total + rs[*byte_end].0;
                     }
-                    //r.1 = *byte_end;
                     (f, *byte_end)
                 })
                 .max_by(|r1, r2| r1.partial_cmp(r2).unwrap_or(Ordering::Equal));
@@ -112,7 +108,6 @@ impl Jieba {
             } else {
                 if let Some(l) = left {
                     let word = &sentence[l..x];
-                    println!("word:{}，{}", word, word.chars().count());
                     if word.chars().count() == 1 {
                         words.push(word);
                     } else {
@@ -131,12 +126,10 @@ impl Jieba {
                 }
                 words.push(frag);
             }
-            println!("xxx");
             x = y;
         }
         if let Some(l) = left {
             let word = &sentence[l..];
-            println!("word:{}，{}", word, word.chars().count());
             if word.chars().count() == 1 {
                 words.push(word);
             } else {
@@ -174,7 +167,6 @@ impl Jieba {
             }
             words.push(frag);
             x = y;
-            println!("xxx");
         }
         if let Some(l) = left {
             words.push(&sentence[l..]);
@@ -183,7 +175,7 @@ impl Jieba {
 
     fn cut_all<'a>(&self, sentence: &'a str, words: &mut Vec<&'a str>) {
         let dag = self.dag(sentence);
-        let mut start: i32 = -1;
+        //let start: i32 = -1;
         let byte_index: Vec<usize> = sentence.char_indices().map(|x| x.0).collect();
         for (i, byte_start) in byte_index.into_iter().enumerate() {
             let l = dag.get(&byte_start).unwrap();
@@ -213,7 +205,29 @@ impl Jieba {
         words
     }
 
-    pub fn cut_for_search() {}
+    pub fn cut_for_search<'a>(&self, text: &'a str) -> Vec<&'a str> {
+        let words = self.cut(text, false, true);
+        let mut new_words = Vec::with_capacity(words.len());
+        for word in words.iter() {
+            let char_len = word.chars().count();
+            let char_index: Vec<usize> = word.char_indices().map(|x| x.0).collect();
+            for v in 2..=3 {
+                if char_len <= v {
+                    continue;
+                }
+                for i in 0..char_len - v {
+                    let garm = &word[char_index[i]..char_index[i + v]];
+                    if let Some(f) = self.dict.frequency(garm) {
+                        if f > 0.0 {
+                            new_words.push(garm);
+                        }
+                    }
+                }
+            }
+            new_words.push(word);
+        }
+        new_words
+    }
 }
 
 #[cfg(test)]
@@ -243,14 +257,21 @@ mod tests {
     #[test]
     fn test_cut_dag_no_hmm() {
         let jieba = Jieba::new().unwrap();
-        let words = jieba.cut("I have two ok", false, false);
+        let words = jieba.cut("我来到北京清华大学", false, false);
         print!("rs:{:?}", words);
     }
 
     #[test]
     fn test_cut_dag_hmm() {
         let jieba = Jieba::new().unwrap();
-        let words = jieba.cut("two", false, true);
+        let words = jieba.cut("I have two ok小明硕士毕业于中国科学院计算所", false, true);
+        print!("rs:{:?}", words);
+    }
+
+    #[test]
+    fn test_cut_for_search() {
+        let jieba = Jieba::new().unwrap();
+        let words = jieba.cut_for_search("小明硕士毕业于中国科学院计算所");
         print!("rs:{:?}", words);
     }
 }

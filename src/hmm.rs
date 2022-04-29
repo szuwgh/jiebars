@@ -37,11 +37,11 @@ pub fn cut<'a>(sentence: &'a str, words: &mut Vec<&'a str>) {
     } else {
         let skip_splitter = SegmentMatches::new(&RE_SKIP, sentence);
         for skip_state in skip_splitter {
-            // let x = skip_state.into_str();
-            // if x.is_empty() {
-            //     continue;
-            // }
-            // words.push(x);
+            let x = skip_state.into_str();
+            if x.is_empty() {
+                continue;
+            }
+            words.push(x);
         }
     }
 }

@@ -31,6 +31,15 @@ pub enum SegmentState<'t> {
     Matched(Match<'t>),
 }
 
+impl<'t> SegmentState<'t> {
+    pub fn into_str(self) -> &'t str {
+        match self {
+            SegmentState::Unmatched(s) => s,
+            SegmentState::Matched(m) => m.as_str(),
+        }
+    }
+}
+
 impl<'r, 't> Iterator for SegmentMatches<'r, 't> {
     type Item = SegmentState<'t>;
 
