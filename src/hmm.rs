@@ -13,7 +13,7 @@ lazy_static! {
 const MIN_FLOAT: f64 = -3.14e100;
 
 #[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Clone, Copy)]
-pub enum Status {
+pub(crate) enum Status {
     B = 0,
     E = 1,
     M = 2,
@@ -27,7 +27,7 @@ static PREV_STATUS: [[Status; 2]; 4] = [
     [Status::S, Status::E], // S
 ];
 
-pub fn cut<'a>(sentence: &'a str, words: &mut Vec<&'a str>) {
+pub(crate) fn cut<'a>(sentence: &'a str, words: &mut Vec<&'a str>) {
     if RE_HAN.is_match(sentence) {
         if sentence.chars().count() > 1 {
             cut_han(sentence, words);
@@ -76,11 +76,11 @@ fn cut_han<'a>(sentence: &'a str, words: &mut Vec<&'a str>) {
     }
 }
 
-//obs : 观察值集合
-//(B, M, E, S) : 状态值集合
-//InitStatus :初始状态概率分布
+// obs : 观察值集合
+// (B, M, E, S) : 状态值集合
+// InitStatus :初始状态概率分布
 // 转移概率矩阵Status(i)只和Status(i-1)相关
-//发射概率矩阵: P(Observed[i], Status[j]) = P(Status[j]) * P(Observed[i]|Status[j])
+// 发射概率矩阵: P(Observed[i], Status[j]) = P(Status[j]) * P(Observed[i]|Status[j])
 fn viterbi(obs: &str) -> Vec<Status> {
     let str_len = obs.len();
     let status = [Status::B, Status::M, Status::E, Status::S];

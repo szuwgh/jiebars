@@ -7,14 +7,14 @@ use std::path::Path;
 //把数据文件读进内存
 static DEFAULT_DICT: &str = include_str!("data/dict.txt");
 
-pub struct Dictionary {
+pub(crate) struct Dictionary {
     dict: HashMap<String, f64>,
     total: f64,
     pub log_total: f64,
 }
 
 impl Dictionary {
-    pub fn load() -> JResult<Dictionary> {
+    pub(crate) fn load() -> JResult<Dictionary> {
         let lines = BufReader::new(DEFAULT_DICT.as_bytes()).lines();
         let mut db = Dictionary {
             dict: HashMap::new(),
@@ -26,7 +26,7 @@ impl Dictionary {
         Ok(db)
     }
 
-    pub fn add_word(&mut self, lines: Lines<BufReader<&[u8]>>) {
+    pub(crate) fn add_word(&mut self, lines: Lines<BufReader<&[u8]>>) {
         for res_line in lines {
             if let Ok(line) = res_line {
                 let elem = line.split_whitespace().collect::<Vec<&str>>();
@@ -41,15 +41,20 @@ impl Dictionary {
                 self.dict.insert(elem[0].to_string(), u);
                 let cs = elem[0].chars().collect::<Vec<char>>();
                 for i in 0..cs.len() {
-                    self.dict
-                        .entry(cs[..i + 1].iter().collect())
-                        .or_insert(0f64);
+                    let c = cs[..i + 1].iter().collect();
+                    if self.dict.get(&c).is_none() {
+                        self.dict.insert(c, 0f64);
+                    }
+
+                    // self.dict
+                    //     .entry(cs[..i + 1].iter().collect())
+                    //     .or_insert(0f64);
                 }
             }
         }
     }
 
-    pub fn frequency(&self, key: &str) -> Option<f64> {
+    pub(crate) fn frequency(&self, key: &str) -> Option<f64> {
         self.dict.get(key).map(|x| *x)
     }
 }

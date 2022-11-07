@@ -1,5 +1,7 @@
 use jiebars::Jieba;
-
+use memory_stats::memory_stats;
+use std::thread;
+use std::time::Duration;
 fn main() {
     let jieba = Jieba::new().unwrap();
 
@@ -22,4 +24,12 @@ fn main() {
     words = jieba.cut_for_search("小明硕士毕业于中国科学院计算所，后在日本京都大学深造");
 
     println!("【搜索引擎模式】:{}\n", words.join(" / "));
+
+    if let Some(usage) = memory_stats() {
+        println!("Current physical memory usage: {}", usage.physical_mem);
+        println!("Current virtual memory usage: {}", usage.virtual_mem);
+    } else {
+        println!("Couldn't get the current memory usage :(");
+    }
+    thread::sleep(Duration::from_secs(5));
 }
