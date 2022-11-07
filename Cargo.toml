@@ -7,7 +7,7 @@ description = "Jieba word segmentation rust version implementation"
 license = "MIT"
 homepage = "https://github.com/szuwgh/jiebars"
 repository = "https://github.com/szuwgh/jiebars"
-keywords = ["segmentation ", "search engine"]
+keywords = ["segmentation", "search engine"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
